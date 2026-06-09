@@ -32,20 +32,7 @@ pip install numpy scipy matplotlib python-docx
 python .claude/skills/UVTOSIZE/scripts/uv_analysis.py PbS.txt --type pbs --output results_PbS
 ```
 
-### MODS (Docker)
-```bash
-cd mods-uvtosize
-docker-compose up --build
-# Open http://localhost:8000
-```
 
-### Flask Web App
-```bash
-cd web
-pip install -r requirements_web.txt
-python server.py
-# Open http://localhost:8765
-```
 
 ## Project Structure
 
@@ -66,7 +53,7 @@ UVTOSIZE/
 │   ├── templates/tool.html     # Frontend (hust-mods.com theme)
 │   └── sample/PbS.txt          # Test sample
 ├── PbS.txt                     # Sample data (PbS, d=6.08 nm)
-├── CdS430(1).txt               # Sample data (CdS, d=4.53 nm)
+├── CdS.txt                     # Sample data (CdS, d=4.53 nm)
 └── UVTOSIZE_Presentation.pptx  # Scientific summary PPT (14 slides)
 ```
 
