@@ -1,0 +1,29 @@
+[Unit]
+Description=UVTOSIZE Quantum Dot UV-Vis Analysis API
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/uvtosize
+Environment="PATH=/var/www/uvtosize/venv/bin:/usr/bin"
+Environment="PORT=8765"
+Environment="UVTOSIZE_AUTH_REQUIRED=0"
+ExecStart=/var/www/uvtosize/venv/bin/gunicorn wsgi:app \
+    --workers 4 \
+    --bind 127.0.0.1:8765 \
+    --timeout 120 \
+    --access-logfile /var/log/uvtosize/access.log \
+    --error-logfile /var/log/uvtosize/error.log \
+    --capture-output \
+    --log-level info
+Restart=always
+RestartSec=5
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

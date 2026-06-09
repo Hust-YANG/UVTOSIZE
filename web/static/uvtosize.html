@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UVTOSIZE · 量子点UV-Vis尺寸分析</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+/* ============================================================
+   UVTOSIZE — Dark Theme (matching liuzunyu.cn design tokens)
+   ============================================================ */
+:root {
+  --bg:       #070f1e;
+  --panel:    rgba(255,255,255,0.04);
+  --border:   rgba(0,229,255,0.15);
+  --cyan:     #00e5ff;
+  --cyan-dim: rgba(0,229,255,0.3);
+  --gold:     #c8a96e;
+  --gold-dim: rgba(200,169,110,0.4);
+  --text:     #dde8f4;
+  --dim:      #6a8aaa;
+  --danger:   #ff5252;
+  --ok:       #00e5a0;
+  --warn:     #ffab40;
+  --radius:   14px;
+  --font:     "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ---- Navbar ---- */
+.navbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px 24px; max-width: 780px; margin: 0 auto;
+  font-size: 0.9rem; color: var(--dim);
+}
+.navbar a { color: var(--dim); text-decoration: none; transition: color 0.2s; }
+.navbar a:hover { color: var(--cyan); }
+.nav-sep { color: rgba(255,255,255,0.2); }
+.nav-current { color: var(--cyan); }
+.nav-right { margin-left: auto; display:flex; gap:10px; align-items:center; }
+.nav-right .auth-btn {
+  background: rgba(0,229,255,0.1); border: 1px solid var(--border);
+  color: var(--cyan); padding: 6px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+}
+.nav-right .auth-btn:hover { background: rgba(0,229,255,0.2); }
+
+/* ---- Tool Switcher ---- */
+.tool-switcher {
+  display: flex; gap: 4px; max-width: 780px; margin: 0 auto 8px;
+  padding: 0 24px; overflow-x: auto; flex-wrap: wrap;
+}
+.tool-switcher a {
+  display: block; padding: 5px 14px; border-radius: 20px;
+  font-size: 0.8rem; color: var(--dim); text-decoration: none;
+  border: 1px solid transparent; white-space: nowrap;
+  transition: all 0.2s;
+}
+.tool-switcher a:hover { color: var(--cyan); border-color: var(--border); }
+.tool-switcher a.active { color: var(--cyan); border-color: var(--cyan); background: rgba(0,229,255,0.08); }
+
+/* ---- Hero ---- */
+.hero { text-align: center; padding: 40px 24px 20px; max-width: 780px; margin: 0 auto; }
+.hero .badge {
+  display: inline-block; padding: 4px 14px; border-radius: 20px;
+  font-size: 0.78rem; color: var(--gold); border: 1px solid var(--gold-dim);
+  margin-bottom: 14px; letter-spacing: 1px;
+}
+.hero h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+.hero p { color: var(--dim); font-size: 0.95rem; max-width: 520px; margin: 0 auto; }
+
+/* ---- Main ---- */
+main { max-width: 780px; margin: 0 auto; padding: 0 24px 60px; }
+
+/* ---- Card ---- */
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
+  backdrop-filter: blur(8px);
+}
+.card h2 {
+  font-size: 1.1rem; font-weight: 600; margin-bottom: 16px;
+  color: var(--cyan); display: flex; align-items: center; gap: 8px;
+}
+.card h2 .icon { font-size: 1.2rem; }
+
+/* ---- Feature list ---- */
+.feature-list {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px;
+}
+.feature-list li {
+  list-style: none; padding-left: 18px; position: relative;
+  font-size: 0.9rem; color: var(--text);
+}
+.feature-list li::before {
+  content: "▸"; position: absolute; left: 0; color: var(--cyan);
+}
+
+/* ---- Form controls ---- */
+.option-row {
+  display: flex; gap: 16px; margin-bottom: 18px; flex-wrap: wrap;
+}
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 0.82rem; color: var(--dim); font-weight: 500; }
+.form-group select, .form-group input {
+  background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+  color: var(--text); padding: 10px 14px; border-radius: 10px;
+  font-size: 0.92rem; font-family: var(--font);
+  transition: border 0.2s; min-width: 160px;
+}
+.form-group select:focus, .form-group input:focus {
+  outline: none; border-color: var(--cyan);
+}
+.form-group select option { background: #111; color: var(--text); }
+
+/* ---- Drop Zone ---- */
+.drop-zone {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 44px 20px; text-align: center; cursor: pointer;
+  transition: all 0.25s; position: relative;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--cyan); background: rgba(0,229,255,0.04);
+}
+.drop-icon { font-size: 2.4rem; margin-bottom: 8px; }
+.drop-hint { font-size: 0.9rem; color: var(--dim); }
+.drop-sub { font-size: 0.78rem; color: rgba(255,255,255,0.25); margin-top: 4px; }
+
+/* ---- File info ---- */
+.file-info {
+  display: none; align-items: center; gap: 10px; margin-top: 14px;
+  padding: 10px 16px; background: rgba(0,229,255,0.06); border-radius: 10px;
+}
+.file-info.show { display: flex; }
+.file-info .file-name { font-size: 0.9rem; color: var(--cyan); flex:1; }
+.file-info .file-size { font-size: 0.8rem; color: var(--dim); }
+.file-info .file-remove {
+  background: none; border: none; color: var(--dim); cursor: pointer;
+  font-size: 1.1rem; padding: 2px 6px;
+}
+.file-info .file-remove:hover { color: var(--danger); }
+
+/* ---- Auto-detect preview ---- */
+.auto-detect-box {
+  display: none; margin-top: 14px; padding: 14px 16px;
+  background: rgba(200,169,110,0.06); border: 1px solid var(--gold-dim);
+  border-radius: 10px; font-size: 0.85rem;
+}
+.auto-detect-box.show { display: block; }
+.auto-detect-box .detect-title { color: var(--gold); font-weight: 600; margin-bottom: 6px; }
+.auto-detect-box .detect-row {
+  display: flex; justify-content: space-between; padding: 2px 0;
+  color: var(--dim);
+}
+.auto-detect-box .detect-row.best { color: var(--ok); font-weight: 600; }
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 12px 24px; border-radius: 10px; font-size: 0.95rem;
+  font-weight: 600; cursor: pointer; border: none;
+  transition: all 0.2s; font-family: var(--font);
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary {
+  width: 100%; background: var(--cyan); color: #061020;
+  margin-top: 18px;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #00d0e8; box-shadow: 0 0 20px rgba(0,229,255,0.3);
+}
+.btn-download {
+  background: rgba(0,229,255,0.08); border: 1px solid var(--cyan-dim);
+  color: var(--cyan); margin-right: 10px; margin-bottom: 10px;
+}
+.btn-download:hover {
+  background: rgba(0,229,255,0.16); box-shadow: 0 0 12px rgba(0,229,255,0.15);
+}
+
+/* ---- Status ---- */
+.status-box {
+  display: none; padding: 16px 20px; border-radius: 10px;
+  margin-bottom: 20px; font-size: 0.9rem;
+}
+.status-box.show { display: flex; align-items: center; gap: 10px; }
+.status-box.processing {
+  background: rgba(0,229,255,0.06); border: 1px solid var(--cyan-dim);
+  color: var(--cyan);
+}
+.status-box.success {
+  background: rgba(0,229,160,0.06); border: 1px solid rgba(0,229,160,0.3);
+  color: var(--ok);
+}
+.status-box.error {
+  background: rgba(255,82,82,0.06); border: 1px solid rgba(255,82,82,0.3);
+  color: var(--danger);
+}
+
+/* ---- Spinner ---- */
+.spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 2px solid rgba(0,229,255,0.2); border-top-color: var(--cyan);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Results ---- */
+#resultBox { display: none; }
+#resultBox.show { display: block; }
+
+.result-table {
+  width: 100%; border-collapse: collapse;
+}
+.result-table td {
+  padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 0.9rem;
+}
+.result-table td:first-child {
+  color: var(--dim); width: 150px; font-weight: 500;
+}
+.result-table td:last-child {
+  color: var(--text); text-align: right; font-variant-numeric: tabular-nums;
+  font-family: "SF Mono", "Consolas", monospace;
+}
+.result-table tr:last-child td { border-bottom: none; }
+
+.result-table .highlight { color: var(--cyan); font-weight: 700; }
+.result-table .warning-text { color: var(--warn); }
+
+/* ---- Warnings ---- */
+.warning-list {
+  margin-top: 12px; padding: 10px 14px;
+  background: rgba(255,171,64,0.06); border: 1px solid rgba(255,171,64,0.25);
+  border-radius: 8px; font-size: 0.85rem; color: var(--warn);
+}
+.warning-list li { margin-left: 18px; }
+
+/* ---- Plot ---- */
+#plotContainer { min-height: 400px; width: 100%; }
+.js-plotly-plot .plotly .modebar { opacity: 0.3; }
+.js-plotly-plot .plotly .modebar:hover { opacity: 1; }
+
+/* ---- Auth prompt modal ---- */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: #111; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 32px; max-width: 420px; text-align: center;
+}
+.modal-box h3 { color: var(--cyan); margin-bottom: 10px; }
+.modal-box p { color: var(--dim); font-size: 0.9rem; margin-bottom: 20px; }
+.modal-box .btn { width: 100%; }
+
+/* ---- Footer ---- */
+footer {
+  text-align: center; padding: 20px; color: rgba(255,255,255,0.15);
+  font-size: 0.78rem;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 600px) {
+  .hero h1 { font-size: 1.4rem; }
+  .card { padding: 20px; }
+  .option-row { flex-direction: column; gap: 10px; }
+  .form-group select, .form-group input { min-width: 0; width: 100%; }
+  .feature-list { grid-template-columns: 1fr; }
+  .result-table td:first-child { width: 110px; }
+  .tool-switcher { gap: 2px; }
+  .tool-switcher a { padding: 5px 10px; font-size: 0.72rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="/">雨泣工作室</a>
+  <span class="nav-sep">/</span>
+  <a href="/tools">工具中心</a>
+  <span class="nav-sep">/</span>
+  <span class="nav-current">UVTOSIZE</span>
+  <div class="nav-right">
+    <button class="auth-btn" id="loginBtn" onclick="toggleAuth()">登录 / 注册</button>
+  </div>
+</nav>
+
+<!-- Tool Switcher -->
+<div class="tool-switcher">
+  <a href="/tool">TEM 标尺重绘</a>
+  <a href="/eds_tool">EDS 叠加</a>
+  <a href="/cite_tool">文献插入</a>
+  <a href="/deai_tool">去AI化</a>
+  <a href="/filter_tool">图像滤波</a>
+  <a href="/diffraction_tool">衍射匹配</a>
+  <a href="/uvtosize" class="active">UVTOSIZE</a>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="badge">QD ANALYSIS</div>
+  <h1>UVTOSIZE · 量子点尺寸分析</h1>
+  <p>上传紫外-可见吸收光谱数据，自动检测第一激子峰，计算量子点直径与尺寸分布。支持 PbS、PbSe、CdS、CdSe。</p>
+</div>
+
+<main>
+  <!-- Features Card -->
+  <div class="card">
+    <h2><span class="icon">🔬</span> 功能说明</h2>
+    <ul class="feature-list">
+      <li>自动检测第一激子吸收峰 (1Sₑ–1Sₕ)</li>
+      <li>Gaussian 拟合提取半高半宽 (HWHM)</li>
+      <li>Moreels/Yu 经验公式计算粒径 d</li>
+      <li>误差传播计算尺寸分布宽度 σ</li>
+      <li>Pub-quality 交互式光谱图</li>
+      <li>导出 PNG 图 + DOCX 分析报告</li>
+      <li>自动识别量子点种类（文件名/光谱推断）</li>
+      <li>支持批量多文件分析</li>
+    </ul>
+  </div>
+
+  <!-- Upload Card -->
+  <div class="card" id="uploadCard">
+    <h2><span class="icon">📂</span> 上传文件</h2>
+
+    <div class="option-row">
+      <div class="form-group">
+        <label for="qdType">量子点种类</label>
+        <select id="qdType">
+          <option value="auto">🔍 自动检测</option>
+          <option value="pbs">PbS (硫化铅)</option>
+          <option value="pbse">PbSe (硒化铅)</option>
+          <option value="cds">CdS (硫化镉)</option>
+          <option value="cdse">CdSe (硒化镉)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="smoothWindow">平滑窗口 (奇数)</label>
+        <input type="number" id="smoothWindow" value="15" min="3" max="201" step="2">
+      </div>
+      <div class="form-group">
+        <label for="fitRange">拟合窗口 (nm) <span style="color:var(--dim);font-weight:400">自动</span></label>
+        <input type="number" id="fitRange" placeholder="自动" min="5" max="300" step="5" style="min-width:100px">
+      </div>
+      <div class="form-group">
+        <label for="baselineMode">基线扣除方法</label>
+        <select id="baselineMode">
+          <option value="auto">自动选择 (AIC)</option>
+          <option value="constant">常数基线</option>
+          <option value="linear">线性基线</option>
+          <option value="exponential">指数基线 (吸收边)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Advanced: Axis ranges -->
+    <details open style="margin:18px 0;padding:14px 16px;background:rgba(0,229,255,0.03);border:1px solid var(--border);border-radius:10px" id="advancedOptions">
+      <summary style="cursor:pointer;color:var(--cyan);font-size:0.9rem;font-weight:600;margin-bottom:14px;outline:none">
+        ⚙ 高级选项 · 轴范围 / 导出格式 / 图片尺寸
+      </summary>
+      <div class="option-row">
+        <div class="form-group">
+          <label for="xmin">X 轴最小值 (nm)</label>
+          <input type="number" id="xmin" placeholder="自动" step="any">
+        </div>
+        <div class="form-group">
+          <label for="xmax">X 轴最大值 (nm)</label>
+          <input type="number" id="xmax" placeholder="自动" step="any">
+        </div>
+        <div class="form-group">
+          <label for="ymin">Y 轴最小值</label>
+          <input type="number" id="ymin" placeholder="自动" step="any">
+        </div>
+        <div class="form-group">
+          <label for="ymax">Y 轴最大值</label>
+          <input type="number" id="ymax" placeholder="自动" step="any">
+        </div>
+        <div class="form-group" style="justify-content:flex-end">
+          <label>&nbsp;</label>
+          <button type="button" onclick="resetPlotAxes()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--dim);padding:10px 16px;border-radius:10px;cursor:pointer;font-size:0.85rem">↺ 重置坐标轴</button>
+        </div>
+      </div>
+      <div class="option-row">
+        <div class="form-group">
+          <label>导出格式</label>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:6px">
+            <label style="color:var(--text);font-size:0.88rem;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="fmtPng" checked onchange="updateFormats()"> PNG
+            </label>
+            <label style="color:var(--text);font-size:0.88rem;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="fmtPdf" onchange="updateFormats()"> PDF
+            </label>
+            <label style="color:var(--text);font-size:0.88rem;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="fmtSvg" onchange="updateFormats()"> SVG
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="dpiSelect">PNG 分辨率 (DPI)</label>
+          <select id="dpiSelect">
+            <option value="300">300 DPI</option>
+            <option value="600">600 DPI (高分辨率)</option>
+            <option value="150">150 DPI (预览)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="figureWidth">图片宽度</label>
+          <select id="figureWidth">
+            <option value="double">双栏 (17 cm)</option>
+            <option value="single">单栏 (8.5 cm)</option>
+          </select>
+        </div>
+      </div>
+      <div class="option-row">
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text);font-size:0.88rem">
+            <input type="checkbox" id="showAnnotation"> 图上显示数据标注 (λ, E, d, HWHM, σ)
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-icon">📁</div>
+      <div class="drop-hint">点击选择 或将 .txt 文件拖拽到此处</div>
+      <div class="drop-sub">支持 UV-Vis 光谱数据文件 · 最大 50 MB</div>
+    </div>
+    <input type="file" id="fileInput" accept=".txt" style="display:none">
+
+    <div class="file-info" id="fileInfo">
+      <span class="file-name" id="fileName"></span>
+      <span class="file-size" id="fileSize"></span>
+      <button class="file-remove" onclick="clearFile()" title="移除">✕</button>
+    </div>
+
+    <div class="auto-detect-box" id="autoDetectBox"></div>
+
+    <button class="btn btn-primary" id="processBtn" disabled onclick="startAnalysis()">
+      ⚡ 开始处理
+    </button>
+  </div>
+
+  <!-- Status Box -->
+  <div class="status-box" id="statusBox"></div>
+
+  <!-- Results -->
+  <div id="resultBox">
+    <!-- Results Table -->
+    <div class="card">
+      <h2><span class="icon">📊</span> 分析结果</h2>
+      <table class="result-table" id="resultTable"></table>
+      <div class="warning-list" id="warningList" style="display:none"></div>
+    </div>
+
+    <!-- Plot -->
+    <div class="card">
+      <h2><span class="icon">📈</span> UV-Vis 吸收光谱</h2>
+      <div id="plotContainer"></div>
+    </div>
+
+    <!-- Downloads -->
+    <div class="card" id="downloadCard">
+      <h2><span class="icon">⬇</span> 下载文件</h2>
+      <a class="btn btn-download" id="downloadPng" href="#" target="_blank">🖼 下载 PNG 图</a>
+      <a class="btn btn-download" id="downloadPdf" href="#" target="_blank" style="display:none">📕 下载 PDF (矢量)</a>
+      <a class="btn btn-download" id="downloadSvg" href="#" target="_blank" style="display:none">🎯 下载 SVG (矢量)</a>
+      <a class="btn btn-download" id="downloadDocx" href="#" target="_blank">📄 下载 DOCX 报告</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  © 2026 UVTOSIZE · Powered by Moreels (ACS Nano 2009) &amp; Yu (Chem. Mater. 2003) sizing curves
+</footer>
+
+<!-- Auth Modal (simplified — integrates with site's auth.js) -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal-box">
+    <h3>🔐 请先登录</h3>
+    <p>该工具需要登录后才能使用。<br>登录后可享受会员无限次使用。</p>
+    <button class="btn btn-primary" onclick="window.location.href='/login'">前往登录</button>
+    <p style="margin-top:10px;font-size:0.8rem;">
+      <a href="/register" style="color:var(--cyan)">没有账号？立即注册</a>
+    </p>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// UVTOSIZE Frontend Logic
+// ============================================================
+
+const API_BASE = "/api/uvtosize";
+let selectedFile = null;
+let autoDetectResult = null;
+
+// Get selected output formats
+function getOutputFormats() {
+  const fmts = [];
+  if (document.getElementById("fmtPng").checked) fmts.push("png");
+  if (document.getElementById("fmtPdf").checked) fmts.push("pdf");
+  if (document.getElementById("fmtSvg").checked) fmts.push("svg");
+  return fmts.length > 0 ? fmts.join(",") : "png";
+}
+
+function updateFormats() {
+  // Ensure at least one format is selected
+  const png = document.getElementById("fmtPng").checked;
+  const pdf = document.getElementById("fmtPdf").checked;
+  const svg = document.getElementById("fmtSvg").checked;
+  if (!png && !pdf && !svg) {
+    document.getElementById("fmtPng").checked = true;
+  }
+}
+
+// ---- i18n ----
+const L = {
+  zh: {
+    processing: "正在分析中，请稍候...",
+    success: "分析完成！",
+    error: "分析失败",
+    noFile: "请先选择文件",
+    dragHint: "点击选择 或将 .txt 文件拖拽到此处",
+    autoDetecting: "正在自动检测量子点种类...",
+    selectType: "请手动选择量子点种类",
+  },
+  en: {
+    processing: "Processing, please wait...",
+    success: "Analysis complete!",
+    error: "Analysis failed",
+    noFile: "Please select a file first",
+    dragHint: "Click to select or drag .txt file here",
+    autoDetecting: "Auto-detecting QD type...",
+    selectType: "Please select QD type manually",
+  }
+};
+function t(key) { return (L[document.documentElement.lang] || L.zh)[key] || key; }
+
+// ---- DOM Elements ----
+const dropZone = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
+const fileInfo = document.getElementById("fileInfo");
+const fileName = document.getElementById("fileName");
+const fileSize = document.getElementById("fileSize");
+const processBtn = document.getElementById("processBtn");
+const statusBox = document.getElementById("statusBox");
+const resultBox = document.getElementById("resultBox");
+const autoDetectBox = document.getElementById("autoDetectBox");
+const qdTypeSelect = document.getElementById("qdType");
+const smoothInput = document.getElementById("smoothWindow");
+const resultTable = document.getElementById("resultTable");
+const warningList = document.getElementById("warningList");
+const plotContainer = document.getElementById("plotContainer");
+const downloadPng = document.getElementById("downloadPng");
+const downloadDocx = document.getElementById("downloadDocx");
+const axisXmin = document.getElementById("xmin");
+const axisXmax = document.getElementById("xmax");
+const axisYmin = document.getElementById("ymin");
+const axisYmax = document.getElementById("ymax");
+
+// Store last analysis data for real-time axis updates
+let currentPlotData = null;
+
+// ---- Real-time axis adjustment ----
+function updatePlotAxes() {
+  if (!currentPlotData) return;
+  const layout = {};
+  const xmin = parseFloat(axisXmin.value);
+  const xmax = parseFloat(axisXmax.value);
+  const ymin = parseFloat(axisYmin.value);
+  const ymax = parseFloat(axisYmax.value);
+  if (!isNaN(xmin) || !isNaN(xmax)) {
+    layout["xaxis.range"] = [isNaN(xmin) ? null : xmin, isNaN(xmax) ? null : xmax];
+  } else {
+    layout["xaxis.range"] = null; // auto
+  }
+  if (!isNaN(ymin) || !isNaN(ymax)) {
+    layout["yaxis.range"] = [isNaN(ymin) ? null : ymin, isNaN(ymax) ? null : ymax];
+  } else {
+    layout["yaxis.range"] = null; // auto
+  }
+  Plotly.relayout(plotContainer, layout);
+}
+
+function resetPlotAxes() {
+  axisXmin.value = "";
+  axisXmax.value = "";
+  axisYmin.value = "";
+  axisYmax.value = "";
+  if (currentPlotData) {
+    Plotly.relayout(plotContainer, { "xaxis.range": null, "yaxis.range": null });
+  }
+}
+
+// Bind axis inputs to real-time chart update
+[axisXmin, axisXmax, axisYmin, axisYmax].forEach(el => {
+  el.addEventListener("input", updatePlotAxes);
+});
+
+// ---- File Upload: Drag & Drop ----
+dropZone.addEventListener("click", () => fileInput.click());
+dropZone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dropZone.classList.add("dragover");
+});
+dropZone.addEventListener("dragleave", () => {
+  dropZone.classList.remove("dragover");
+});
+dropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropZone.classList.remove("dragover");
+  const files = e.dataTransfer.files;
+  if (files.length > 0) handleFile(files[0]);
+});
+
+fileInput.addEventListener("change", () => {
+  if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.name.toLowerCase().endsWith(".txt")) {
+    showStatus("error", "仅支持 .txt 格式的 UV-Vis 数据文件");
+    return;
+  }
+  if (file.size > 50 * 1024 * 1024) {
+    showStatus("error", "文件过大，最大支持 50 MB");
+    return;
+  }
+
+  selectedFile = file;
+  fileName.textContent = file.name;
+  fileSize.textContent = formatSize(file.size);
+  fileInfo.classList.add("show");
+  processBtn.disabled = false;
+
+  // If auto-detect is selected, trigger preview
+  if (qdTypeSelect.value === "auto") {
+    runAutoDetect(file);
+  } else {
+    autoDetectBox.classList.remove("show");
+    autoDetectResult = null;
+  }
+
+  // Hide previous results
+  resultBox.classList.remove("show");
+  statusBox.classList.remove("show", "processing", "success", "error");
+}
+
+function clearFile() {
+  selectedFile = null;
+  fileInput.value = "";
+  fileInfo.classList.remove("show");
+  autoDetectBox.classList.remove("show");
+  autoDetectResult = null;
+  processBtn.disabled = true;
+  statusBox.classList.remove("show", "processing", "success", "error");
+}
+
+// ---- QD Type Selector Change ----
+qdTypeSelect.addEventListener("change", () => {
+  if (qdTypeSelect.value === "auto" && selectedFile) {
+    runAutoDetect(selectedFile);
+  } else {
+    autoDetectBox.classList.remove("show");
+    autoDetectResult = null;
+  }
+});
+
+// ---- Auto-Detect ----
+async function runAutoDetect(file) {
+  autoDetectBox.classList.add("show");
+  autoDetectBox.innerHTML = '<div class="detect-title">🔍 ' + t("autoDetecting") + '</div>';
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const resp = await fetch(`${API_BASE}/autodetect`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      autoDetectBox.innerHTML = '<div class="detect-title" style="color:var(--danger)">⚠ 自动检测失败</div>'
+        + '<div style="color:var(--dim)">' + data.error + '</div>';
+      return;
+    }
+
+    autoDetectResult = data;
+    let html = '<div class="detect-title">📡 光谱推断结果</div>';
+
+    if (data.filename_hint) {
+      html += '<div style="color:var(--cyan);margin-bottom:4px">📝 文件名提示: '
+        + data.filename_hint.toUpperCase() + '</div>';
+    }
+
+    html += '<div style="color:var(--dim);margin-bottom:6px;font-size:0.8rem">'
+      + '检测峰: ' + (data.peak_wl_nm ? data.peak_wl_nm.toFixed(1) + ' nm' : 'N/A')
+      + ' · 数据点: ' + (data.data_points || 0)
+      + '</div>';
+
+    if (data.rankings) {
+      data.rankings.forEach((r, i) => {
+        const cls = i === 0 ? 'detect-row best' : 'detect-row';
+        const confIcon = { high: '★★★', medium: '★★', low: '★' }[r.confidence] || '○';
+        html += '<div class="' + cls + '">'
+          + '<span>' + confIcon + ' ' + r.name + ' [' + r.confidence + ']</span>'
+          + '<span>' + (r.peak_wl_nm ? r.peak_wl_nm.toFixed(0) + ' nm' : '') + '</span>'
+          + '</div>';
+      });
+    }
+
+    autoDetectBox.innerHTML = html;
+  } catch (err) {
+    autoDetectBox.innerHTML = '<div style="color:var(--danger)">⚠ 网络错误: ' + err.message + '</div>';
+  }
+}
+
+// ---- Start Analysis ----
+async function startAnalysis() {
+  if (!selectedFile) {
+    showStatus("error", t("noFile"));
+    return;
+  }
+
+  showStatus("processing", "⏳ " + t("processing"));
+  processBtn.disabled = true;
+  resultBox.classList.remove("show");
+
+  const qdType = qdTypeSelect.value;
+  const smoothWindow = parseInt(smoothInput.value) || 15;
+
+  const formData = new FormData();
+  formData.append("file", selectedFile);
+  formData.append("qd_type", qdType);
+  formData.append("smooth_window", smoothWindow);
+
+  // Axis ranges
+  const xmin = document.getElementById("xmin").value;
+  const xmax = document.getElementById("xmax").value;
+  const ymin = document.getElementById("ymin").value;
+  const ymax = document.getElementById("ymax").value;
+  if (xmin) formData.append("xmin", xmin);
+  if (xmax) formData.append("xmax", xmax);
+  if (ymin) formData.append("ymin", ymin);
+  if (ymax) formData.append("ymax", ymax);
+
+  // Output settings
+  formData.append("output_formats", getOutputFormats());
+  formData.append("dpi", document.getElementById("dpiSelect").value);
+  formData.append("figure_width", document.getElementById("figureWidth").value);
+  formData.append("show_annotation", document.getElementById("showAnnotation").checked ? "1" : "0");
+  const fitRange = document.getElementById("fitRange").value;
+  if (fitRange) formData.append("fit_range", fitRange);
+  formData.append("baseline_mode", document.getElementById("baselineMode").value);
+
+  try {
+    const resp = await fetch(`${API_BASE}/analyze`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      // Handle auto-detect failure with rankings
+      if (data.code === "AUTO_DETECT_FAILED" && data.rankings) {
+        showStatus("error", "⚠ 无法自动识别量子点种类，请从下拉菜单中手动选择 PbS / PbSe / CdS / CdSe");
+        qdTypeSelect.value = "pbs"; // default to PbS as fallback
+        processBtn.disabled = false;
+        return;
+      }
+      showStatus("error", "❌ " + (data.error || t("error")));
+      processBtn.disabled = false;
+      return;
+    }
+
+    // Success — render results
+    showStatus("success", "✅ " + t("success"));
+    renderResults(data);
+    renderPlot(data);
+    updatePlotAxes();  // apply current axis inputs to chart
+    setupDownloads(data);
+    resultBox.classList.add("show");
+
+  } catch (err) {
+    showStatus("error", "❌ 网络错误: " + err.message);
+    processBtn.disabled = false;
+  }
+
+  processBtn.disabled = false;
+}
+
+// ---- Render Results Table ----
+function renderResults(data) {
+  const fmt = (v, unit, decimals) => {
+    if (v == null || isNaN(v)) return '<span style="color:var(--dim)">N/A</span>';
+    return '<span class="highlight">' + Number(v).toFixed(decimals || 2) + '</span>'
+      + (unit ? ' <span style="color:var(--dim)">' + unit + '</span>' : '');
+  };
+
+  const rows = [
+    ["样品名称", data.sample_name || "-"],
+    ["量子点种类", '<span style="color:var(--cyan)">' + (data.qd_type || "").toUpperCase() + '</span>'],
+    ["第一激子峰", fmt(data.peak_wavelength_nm, "nm", 1) + " &nbsp;(" + fmt(data.peak_energy_eV, "eV", 3) + ")"],
+    ["吸收度", fmt(data.peak_absorbance, "", 4)],
+    ["量子点直径 d", fmt(data.size_nm, "nm", 2)],
+    ["HWHM (半高半宽)", fmt(data.hwhm_nm, "nm", 1) + " &nbsp;(" + fmt(data.hwhm_eV ? data.hwhm_eV*1000 : null, "meV", 2) + ")"],
+    ["FWHM", fmt(data.fwhm_nm, "nm", 1) + " &nbsp;(" + fmt(data.fwhm_eV ? data.fwhm_eV*1000 : null, "meV", 2) + ")"],
+    ["Gaussian R²", fmt(data.fit_r2, "", 4)],
+    ["尺寸分布 σ", fmt(data.sigma_nm, "nm", 2) + " &nbsp;(" + fmt(data.relative_sigma_percent, "%", 1) + ")"],
+    ["|dE/dd|", fmt(data.deriv_dE_dd, "eV/nm", 4)],
+    ["使用公式", '<span style="font-size:0.82rem;color:var(--dim)">' + (data.formula_name || "-") + '</span>'],
+    ["校准范围 (波长)", '<span style="color:var(--dim)">' + (data.valid_range_wl || "-") + '</span>'],
+    ["校准范围 (尺寸)", '<span style="color:var(--dim)">' + (data.valid_range_size || "-") + '</span>'],
+  ];
+
+  resultTable.innerHTML = rows.map(r =>
+    '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'
+  ).join("");
+
+  // Warnings
+  if (data.warnings && data.warnings.length > 0) {
+    warningList.style.display = "block";
+    warningList.innerHTML = '<strong>⚠ 警告：</strong><ul>'
+      + data.warnings.map(w => '<li>' + w + '</li>').join("")
+      + '</ul>';
+  } else {
+    warningList.style.display = "none";
+  }
+}
+
+// ---- Render Plotly.js Chart ----
+function renderPlot(data) {
+  currentPlotData = data;  // store for real-time axis updates
+
+  const traces = [];
+
+  // Trace 1: Raw spectrum
+  traces.push({
+    x: data.wavelength,
+    y: data.absorbance,
+    type: "scatter",
+    mode: "lines",
+    name: "Absorption",
+    line: { color: "#0072B2", width: 1.2 },
+    hovertemplate: "%{x:.1f} nm<br>Abs: %{y:.4f}<extra></extra>",
+  });
+
+  // Trace 2: Pure Gaussian fit (solid, vermilion)
+  if (data.gauss_only_wl && data.gauss_only_wl.length > 0) {
+    traces.push({
+      x: data.gauss_only_wl,
+      y: data.gauss_only_abs,
+      type: "scatter",
+      mode: "lines",
+      name: "Pure Gauss Fit",
+      line: { color: "#D55E00", width: 1.5 },
+      hovertemplate: "%{x:.1f} nm<br>Gauss: %{y:.4f}<extra></extra>",
+    });
+  }
+
+  // Trace 3: Peak marker
+  if (data.peak_wavelength_nm && data.peak_absorbance) {
+    const yRange = data.absorbance ? [
+      Math.min(...data.absorbance),
+      Math.max(...data.absorbance)
+    ] : [0, 1];
+    const yPadding = (yRange[1] - yRange[0]) * 0.05;
+
+    traces.push({
+      x: [data.peak_wavelength_nm, data.peak_wavelength_nm],
+      y: [yRange[0] - yPadding, data.peak_absorbance * 1.02],
+      type: "scatter",
+      mode: "lines",
+      name: "第一激子峰",
+      line: { color: "#ff4444", width: 1.5, dash: "dash" },
+      hoverinfo: "skip",
+      showlegend: true,
+    });
+  }
+
+  // Trace 4: HWHM calibration (green solid, based on Gaussian half-max)
+  let hwhmAnnotations = [];
+  if (data.hwhm_left_wl && data.hwhm_right_wl && data.hwhm_half_max_abs) {
+    const hwhmY = data.hwhm_half_max_abs;
+    const absRange = data.absorbance ? Math.max(...data.absorbance) - Math.min(...data.absorbance) : 1;
+    const tickH = absRange * 0.025;
+    const hwhmNm = data.hwhm_nm || (data.hwhm_right_wl - data.hwhm_left_wl);
+    const hwhmMeV = data.hwhm_eV ? (data.hwhm_eV * 1000).toFixed(1) : "";
+
+    // Horizontal line at half-max
+    traces.push({
+      x: [data.hwhm_left_wl, data.hwhm_right_wl],
+      y: [hwhmY, hwhmY],
+      type: "scatter",
+      mode: "lines",
+      name: "HWHM",
+      line: { color: "#009E73", width: 1.2, dash: "dash" },
+      hoverinfo: "skip",
+      showlegend: true,
+    });
+    // End ticks (vertical)
+    for (const wlCap of [data.hwhm_left_wl, data.hwhm_right_wl]) {
+      traces.push({
+        x: [wlCap, wlCap],
+        y: [hwhmY - tickH, hwhmY + tickH],
+        type: "scatter",
+        mode: "lines",
+        name: "",
+        line: { color: "#009E73", width: 2.0 },
+        hoverinfo: "skip",
+        showlegend: false,
+      });
+    }
+  }
+
+  const layout = {
+    title: {
+      text: data.sample_name + " — UV-Vis Absorption Spectrum",
+      font: { color: "#dde8f4", size: 14 },
+    },
+    xaxis: {
+      title: { text: "Wavelength (nm)", font: { color: "#6a8aaa" } },
+      gridcolor: "rgba(255,255,255,0.06)",
+      zeroline: false,
+      color: "#6a8aaa",
+    },
+    yaxis: {
+      title: { text: "Absorbance (a.u.)", font: { color: "#6a8aaa" } },
+      gridcolor: "rgba(255,255,255,0.06)",
+      zeroline: false,
+      color: "#6a8aaa",
+    },
+    plot_bgcolor: "#070f1e",
+    paper_bgcolor: "rgba(0,0,0,0)",
+    font: { color: "#dde8f4" },
+    legend: {
+      x: 0.02, y: 0.98,
+      bgcolor: "rgba(0,0,0,0.4)",
+      font: { color: "#dde8f4", size: 11 },
+    },
+    margin: { l: 60, r: 30, t: 50, b: 50 },
+    hovermode: "closest",
+    annotations: hwhmAnnotations,
+  };
+
+  const config = {
+    responsive: true,
+    displayModeBar: true,
+    modeBarButtonsToRemove: ["lasso2d", "select2d"],
+    displaylogo: false,
+  };
+
+  Plotly.react(plotContainer, traces, layout, config);
+}
+
+// ---- Setup Downloads ----
+function setupDownloads(data) {
+  const plotUrls = data.plot_urls || {};
+  // PNG
+  const pngEl = document.getElementById("downloadPng");
+  if (plotUrls.png) {
+    pngEl.href = plotUrls.png;
+    pngEl.style.display = "inline-flex";
+  } else {
+    pngEl.style.display = "none";
+  }
+  // PDF
+  const pdfEl = document.getElementById("downloadPdf");
+  if (plotUrls.pdf) {
+    pdfEl.href = plotUrls.pdf;
+    pdfEl.style.display = "inline-flex";
+  } else {
+    pdfEl.style.display = "none";
+  }
+  // SVG
+  const svgEl = document.getElementById("downloadSvg");
+  if (plotUrls.svg) {
+    svgEl.href = plotUrls.svg;
+    svgEl.style.display = "inline-flex";
+  } else {
+    svgEl.style.display = "none";
+  }
+  // DOCX
+  if (data.docx_url) {
+    downloadDocx.href = data.docx_url;
+    downloadDocx.style.display = "inline-flex";
+  } else {
+    downloadDocx.style.display = "none";
+  }
+}
+
+// ---- Status Box ----
+function showStatus(type, message) {
+  statusBox.className = "status-box show " + type;
+  if (type === "processing") {
+    statusBox.innerHTML = '<span class="spinner"></span> ' + message;
+  } else {
+    statusBox.textContent = message;
+  }
+}
+
+// ---- Utilities ----
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function toggleAuth() {
+  // Integrate with site's auth.js
+  if (typeof window.YuQiAuth !== "undefined") {
+    window.YuQiAuth.showLogin();
+  } else {
+    document.getElementById("authModal").classList.add("show");
+    document.getElementById("authModal").addEventListener("click", function(e) {
+      if (e.target === this) this.classList.remove("show");
+    });
+  }
+}
+
+// ---- Initialize Plotly with empty dark chart ----
+Plotly.react(plotContainer, [], {
+  title: { text: "Upload a file to see the spectrum", font: { color: "#6a8aaa", size: 14 } },
+  xaxis: { title: { text: "Wavelength (nm)", font: { color: "#6a8aaa" } }, gridcolor: "rgba(255,255,255,0.06)", zeroline: false, color: "#6a8aaa" },
+  yaxis: { title: { text: "Absorbance (a.u.)", font: { color: "#6a8aaa" } }, gridcolor: "rgba(255,255,255,0.06)", zeroline: false, color: "#6a8aaa" },
+  plot_bgcolor: "#070f1e",
+  paper_bgcolor: "rgba(0,0,0,0)",
+  font: { color: "#dde8f4" },
+  margin: { l: 60, r: 30, t: 50, b: 50 },
+}, { responsive: true, displayModeBar: true, displaylogo: false });
+
+console.log("UVTOSIZE ready 🚀");
+console.log("API: " + API_BASE);
+</script>
+
+</body>
+</html>

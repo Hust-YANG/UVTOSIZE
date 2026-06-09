@@ -1,0 +1,31 @@
+# Output directories
+results*/
+results_*/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temp files
+*.tmp
+test_output.png
+
+# System
+.DS_Store
+Thumbs.db
+
+# Data files in results dirs
+results_*/*.txt
+
+# MODS test output
+mods-uvtosize/test_output.png
+mods-uvtosize/__pycache__/

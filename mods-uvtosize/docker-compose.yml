@@ -1,0 +1,7 @@
+# 本地跑通：在本文件夹运行  docker-compose up --build
+# 然后浏览器打开 http://localhost:8000
+services:
+  tool:
+    build: .
+    ports:
+      - "8000:8000"
