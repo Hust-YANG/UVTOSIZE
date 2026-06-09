@@ -13,7 +13,7 @@ UV-Vis absorption spectroscopy analysis tool for semiconductor quantum dots (PbS
 - **Publication-Quality Plots** — Wong (2011) colorblind-friendly palette, Times New Roman, inward ticks, multi-format export (PNG/PDF/SVG)
 - **Word Report** — Auto-generated .docx with formulas, step-by-step calculations, and references
 - **Web Interface** — Flask REST API + Plotly.js interactive charts
-- **MODS Compatible** — Packaged for [hust-mods.com](https://hust-mods.com) tool platform
+
 
 ## Supported QD Materials
 
@@ -54,7 +54,7 @@ UVTOSIZE/
 │   └── sample/PbS.txt          # Test sample
 ├── PbS.txt                     # Sample data (PbS, d=6.08 nm)
 ├── CdS.txt                     # Sample data (CdS, d=4.53 nm)
-└── UVTOSIZE_Presentation.pptx  # Scientific summary PPT (14 slides)
+
 ```
 
 ## Key Design Decisions
@@ -80,6 +80,6 @@ Literature-derived HWHM ranges (10–350 meV for CdS, 10–200 meV for others) c
 - Nikolaev, V. V. & Averkiev, N. S. Size distribution of QDs from absorption spectra. *Appl. Phys. Lett.* **2009**, 95, 263107.
 - Wong, B. Points of view: Color blindness. *Nature Methods* **2011**, 8, 441.
 
-## License
 
-MIT
+
+
